@@ -180,6 +180,7 @@ impl<'a> PathParser {
     ///     Path {
     ///         origin: "/route/aaa/{num}/bbb/{num2:str}/ccc/{num3:int}",
     ///         octets: ["route", "aaa", "*", "bbb", "*", "ccc", "*"],
+    ///         params_names: vec![]
     ///         params: [
     ///             Param { index: 2, name: "num", validator: None },
     ///             Param { index: 4, name: "num2", validator: None },
@@ -206,7 +207,7 @@ impl<'a> PathParser {
                 octets,
                 params_names,
                 params_values,
-                params_len: params_len
+                params_len: params_len,
             });
         }
         Err("Path processing error".to_string())

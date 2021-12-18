@@ -3,7 +3,6 @@ use firestorm::profile_method;
 use rustc_hash::FxHashMap;
 use std::borrow::{Borrow, BorrowMut, Cow};
 
-
 #[derive(Debug)]
 struct Handler {
     handler: i32,
@@ -28,7 +27,6 @@ impl<'a> PathProcessor<'a> {
     #[inline]
     pub fn new(path: &str, max_length: usize) -> PathProcessor {
         profile_method!(new);
-
 
         let mut octets = Vec::with_capacity(max_length);
         for octet in path.split('/') {
@@ -85,9 +83,13 @@ impl SquallRouter {
             let handler = Handler {
                 handler,
                 method,
-                params_names: parsed.params_names.iter().map(|v| v.as_ref().to_owned()).collect(),
+                params_names: parsed
+                    .params_names
+                    .iter()
+                    .map(|v| v.as_ref().to_owned())
+                    .collect(),
                 params_values: parsed.params_values,
-                params_len: parsed.params_len
+                params_len: parsed.params_len,
             };
 
             // If path completely static, just add to static DB
@@ -129,7 +131,11 @@ impl SquallRouter {
             let handler = Handler {
                 handler,
                 method,
-                params_names: parsed.params_names.iter().map(|v| v.as_ref().to_owned()).collect(),
+                params_names: parsed
+                    .params_names
+                    .iter()
+                    .map(|v| v.as_ref().to_owned())
+                    .collect(),
                 params_values: parsed.params_values,
                 params_len: parsed.params_len,
             };
@@ -137,7 +143,7 @@ impl SquallRouter {
             for loc in self.locations_db.iter_mut() {
                 if loc.0 == path {
                     loc.1.push(handler);
-                    return
+                    return;
                 }
             }
             self.locations_db.push((path, vec![handler]));
@@ -195,8 +201,8 @@ impl SquallRouter {
         let processor = PathProcessor::new(path, self.dynamic_db_size);
         if let Some(handlers) = processor.get_path_handlers(&self.dynamic_db) {
             'outer: for handler in handlers {
-            // 'outer: for i in 0..handlers.len() {
-            //     let handler = &handlers[i];
+                // 'outer: for i in 0..handlers.len() {
+                //     let handler = &handlers[i];
                 if &handler.method != method {
                     continue;
                 }
@@ -230,16 +236,16 @@ impl SquallRouter {
         profile_method!(get_location_handler);
 
         for i in &self.locations_db {
-            if ! path.starts_with(&i.0) {
-                continue
+            if !path.starts_with(&i.0) {
+                continue;
             }
 
             for handler in &i.1 {
                 if &handler.method != method {
-                    continue
+                    continue;
                 }
 
-                return Some((handler.handler, vec![], vec![]))
+                return Some((handler.handler, vec![], vec![]));
             }
         }
         None

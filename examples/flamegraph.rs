@@ -1,4 +1,3 @@
-
 macro_rules! register {
     // (colon) => {{
     //     register!(finish => ":p1", ":p2", ":p3", ":p4")
@@ -153,7 +152,6 @@ static PATHS: [&str; 3] = [
     "/orgs/rust-lang/public_members/nikomatsakis",
     "/repos/rust-lang/rust/releases/1.51.0",
 ];
-
 
 fn main() {
     let mut router = squall_router::SquallRouter::new();
