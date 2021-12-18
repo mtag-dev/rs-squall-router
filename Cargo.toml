@@ -1,0 +1,33 @@
+[package]
+name = "squall-router"
+version = "0.1.0-beta.1"
+authors = [
+    "Stanislav Dubrovskyi <s.dubrovskyi@cleverdec.com>",
+]
+description = "HTTP router with path parameters extraction"
+keywords = ["squall", "router", "routing"]
+repository = "https://github.com/mtag-dev/rs-squall-router"
+license = "MIT OR Apache-2.0"
+edition = "2018"
+
+[lib]
+name = "squall_router"
+path = "src/lib.rs"
+crate-type = ["rlib"]
+
+[dependencies]
+regex = "1"
+rustc-hash = "1"
+firestorm = "0.4"
+embed-doc-image = "0.1"
+
+[dev-dependencies]
+criterion = { version = "0.3", features = ["html_reports"] }
+actix-router = "0.4.0"
+
+[features]
+profile = ["firestorm/enable_system_time"]
+
+[[bench]]
+name = "router"
+harness = false
