@@ -30,13 +30,40 @@ Crate's routing database based on [rustc_hash::FxHashMap] which is non-cryptogra
 
 It is applicable and safe here because the database is filled only by endpoints registration and not during requests handling.
 
-## Limitations
-
-<...>
-
 ## Usage
 
 <...>
+
+
+## Limitations
+
+At the moment, there are two well known limitations
+
+#### Equal length routes with mixed `dynamic` and `static` parameters in the same position
+
+`/api/v1/user/{user_id}/info/full`
+
+`/api/v1/user/parameter/{prm}/details`
+
+In case of such API design request to `/api/v1/user/parameter/info/full` will not find the handler.
+It is applicable only for routes with at least one dynamic parameter and with the same amount of octets.
+We have checked how many APIs have such behavior, it is less than 1% which can be easily aligned with this contract.
+
+In the next releases, it will be covered by assertion to prevent a bad user experience.
+
+There are a few ways under discussion how to make such limitations not applicable.
+
+#### Wildcard route suffix
+
+`/static/{path:.*}` - Dynamic routing part depends on octets splitting so it is not applicable.
+
+Instead, you should use location api:
+
+```Rust
+let handler_id = 8;
+router.add_http_location("GET".to_string(), "/static".to_string(), handler_id);
+```
+
 
 [`Easy`]: http://thatwaseasy.example.com
 [Squall]: https://github.com/mtag-dev/squall
