@@ -20,7 +20,7 @@ It is suitable for:
 Benchmark code based on actix-router, so it also here for reference.
 
 <div>
-<img src="../../../assets/violin.svg" />
+<img src="https://raw.githubusercontent.com/mtag-dev/rs-squall-router/main/assets/violin.svg" />
 </div>
 
 
