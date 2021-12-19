@@ -1,5 +1,8 @@
 # High performance HTTP router
 
+<font color="red">ATTN</font>: Library is under active development. Should not be used in production environments.
+
+
 Initially created as routing subsystem for Python's [Squall] API Framework.
 
 Designed to mitigate the overhead of large-scale routing tables.
@@ -82,13 +85,7 @@ There are a few ways under discussion how to make such limitations not applicabl
 
 `/static/{path:.*}` - Dynamic routing part depends on octets splitting so it is not applicable.
 
-Instead, you should use location api:
-
-```Rust
-let handler_id = 8;
-router.add_http_location("GET".to_string(), "/static".to_string(), handler_id);
-```
-
+Instead, you should use location api.
 
 [Squall]: https://github.com/mtag-dev/squall
 [rustc_hash::FxHashMap]: https://docs.rs/rustc-hash/latest/rustc_hash/struct.FxHasher.html
