@@ -1,7 +1,6 @@
 use crate::path::{Param, PathParser};
 use firestorm::profile_method;
 use rustc_hash::FxHashMap;
-use std::borrow::{Borrow, BorrowMut, Cow};
 
 #[derive(Debug)]
 struct Handler {
@@ -19,7 +18,7 @@ struct Database {
 }
 
 struct PathProcessor<'a> {
-    path: &'a str,
+    // path: &'a str,
     octets: Vec<&'a str>,
 }
 
@@ -36,7 +35,8 @@ impl<'a> PathProcessor<'a> {
             octets.push(octet);
         }
 
-        PathProcessor { path, octets }
+        PathProcessor { octets }
+        // PathProcessor { path, octets }
     }
 
     #[inline]

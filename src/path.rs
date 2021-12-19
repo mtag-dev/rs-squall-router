@@ -22,15 +22,6 @@ pub struct PathParser {
 }
 
 impl<'a> PathParser {
-    /// Returns a path parser backed with provided validators
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use squall_core::path::PathParser;
-    ///
-    /// let parser = PathParser::new();
-    /// ```
     pub fn new() -> PathParser {
         PathParser {
             validators: HashMap::new(),
@@ -60,12 +51,15 @@ impl<'a> PathParser {
     /// "api/v1/user/{user_id}" <- Valid
     /// "api/v1/user/ID-{user_id}" <- Will cause an error
     ///
-    /// Sometimes, part of code is better than words )
-    /// `assert_eq(self.get_octets("api/v1/user/{user_id}"), vec!["api", "v1", "user", "*"]))`
-    ///
     /// # Arguments
     ///
     /// * `path` - Normalized(trimmed) path
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// // assert_eq(self.get_octets("api/v1/user/{user_id}"), vec!["api", "v1", "user", "*"]))
+    /// ```
     ///
     fn get_octets(&self, path: &str) -> Result<Vec<Cow<str>>, String> {
         let patterns = [Regex::new(r"\{([^}]*)\}").unwrap()];
@@ -103,7 +97,7 @@ impl<'a> PathParser {
         }
     }
 
-    /// Returns a vector of dynamic parameters objects (Param)
+    /// Returns a vector of parameters names and vector of Param structs
     /// In case if parameter validator not found in PathParser.validators, will cause an error.
     /// If no validator specified it will be processed as str.
     ///
@@ -174,20 +168,28 @@ impl<'a> PathParser {
 
     /// Main method
     ///
-    /// Explanation:
-    /// assert_eq!(
-    ///     parser.parse("/route/aaa/{num}/bbb/{num2:str}/ccc/{num3:int}"),
-    ///     Path {
-    ///         origin: "/route/aaa/{num}/bbb/{num2:str}/ccc/{num3:int}",
-    ///         octets: ["route", "aaa", "*", "bbb", "*", "ccc", "*"],
-    ///         params_names: vec![]
-    ///         params: [
-    ///             Param { index: 2, name: "num", validator: None },
-    ///             Param { index: 4, name: "num2", validator: None },
-    ///             Param { index: 6, name: "num3", validator: Some(Regex::new("[0-9]+").unwrap()) }
-    ///         ]
-    ///     }
-    /// )
+    /// # Arguments
+    ///
+    /// * `path` - Route path
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use squall_core::path::{PathParser, Path, Param};
+    ///
+    /// let mut parser = PathParser::new();
+    /// parser.add_validator("int".to_string(), r"[0-9]+".to_string());
+    /// let path = parser.parse("/route/aaa/{num}/bbb/{num2:str}/ccc/{num3:int}").unwrap();
+    ///
+    /// assert_eq!(path.octets, vec!["route", "aaa", "*", "bbb", "*", "ccc", "*"]);
+    /// assert_eq!(path.params_names, vec!["num", "num2", "num3"]);
+    /// assert_eq!(path.params_values[0], Param { index: 2, validator: None });
+    /// assert_eq!(path.params_values[1], Param { index: 4, validator: None });
+    /// assert_eq!(path.params_values[1], Param { index: 4, validator: Some(Regex::new("[0-9]+").unwrap()) });
+    /// assert_eq!(path.params_names, vec!["num", "num2", "num3"]);
+    /// assert_eq!(path.params_names, vec!["num", "num2", "num3"]);
+    /// ```
+
     pub fn parse(&'a self, path: &'a str) -> Result<Path<'a>, String> {
         if self.is_valid(path) {
             let normalized = self.normalized(path);
