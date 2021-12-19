@@ -150,7 +150,7 @@ impl<'a> PathParser {
     ///
     /// # Arguments
     ///
-    /// * `validator` - String validator identifier
+    /// * `alias` - String validator identifier
     /// * `regex` - String Regex pattern for compiling validator
     ///
     /// # Examples
@@ -161,11 +161,11 @@ impl<'a> PathParser {
     /// let mut parser = PathParser::new();
     /// parser.add_validator("int".to_string(), r"[0-9]+".to_string());
     /// ```
-    pub fn add_validator(&mut self, validator: String, regex: String) -> Result<(), String> {
+    pub fn add_validator(&mut self, alias: String, regex: String) -> Result<(), String> {
         // Adds new dynamic octet type validator
         match Regex::new(regex.as_str()) {
             Ok(v) => {
-                self.validators.insert(validator, v);
+                self.validators.insert(alias, v);
                 Ok(())
             }
             Err(e) => Err(e.to_string()),

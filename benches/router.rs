@@ -168,13 +168,13 @@ fn compare_routers(c: &mut Criterion) {
 
     let mut router = squall_router::SquallRouter::new();
     for route in register!(brackets) {
-        router.add_http_route(String::from("GET"), route.to_string(), 0);
+        router.add_route(String::from("GET"), route.to_string(), 0);
     }
 
     group.bench_function("squall", |b| {
         b.iter(|| {
             for route in call() {
-                black_box(router.get_http_handler("GET", route).unwrap());
+                black_box(router.resolve("GET", route).unwrap());
             }
         });
     });

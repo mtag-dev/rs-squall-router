@@ -25,7 +25,7 @@ struct PathProcessor<'a> {
 
 impl<'a> PathProcessor<'a> {
     #[inline]
-    pub fn new(path: &str, max_length: usize) -> PathProcessor {
+    fn new(path: &str, max_length: usize) -> PathProcessor {
         profile_method!(new);
 
         let mut octets = Vec::with_capacity(max_length);
@@ -64,7 +64,7 @@ pub struct SquallRouter {
     dynamic_db_size: usize,
     static_db: FxHashMap<String, Vec<Handler>>,
     locations_db: Vec<(String, Vec<Handler>)>,
-    pub path_parser: PathParser,
+    path_parser: PathParser,
 }
 
 impl SquallRouter {
@@ -78,11 +78,54 @@ impl SquallRouter {
         }
     }
 
-    pub fn add_validator(&mut self, validator: String, regex: String) -> Result<(), String> {
-        self.path_parser.add_validator(validator, regex)
+    /// Adds new validation option for dynamic parameters.
+    ///
+    /// # Arguments
+    ///
+    /// * `alias` - String validator alias
+    /// * `regex` - String Regex pattern for compiling validator
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use squall_router::SquallRouter;
+    ///
+    /// let mut router = SquallRouter::new();
+    /// router.add_validator("int".to_string(), r"[0-9]+".to_string());
+    /// ```
+    pub fn add_validator(&mut self, alias: String, regex: String) -> Result<(), String> {
+        self.path_parser.add_validator(alias, regex)
     }
 
-    pub fn add_http_route(&mut self, method: String, path: String, handler: i32) -> () {
+    /// Adds new route.
+    ///
+    /// # Arguments
+    ///
+    /// * `method` - Method name. At the moment any String.
+    ///              U can use it also for WS endpoints registration, for instance `"WS".to_string()`
+    /// * `path` - String path string.
+    /// * `handler` - Handler function identifier.
+    ///
+    /// # Examples
+    ///
+    /// Simple routes registration
+    /// ```
+    /// use squall_router::SquallRouter;
+    ///
+    /// let mut router = SquallRouter::new();
+    /// router.add_route("GET".to_string(), "/api/users".to_string(), 0);
+    /// router.add_route("GET".to_string(), "/api/user/{user_id}".to_string(), 1);
+    /// ```
+    ///
+    /// Extra route parameters validation
+    /// ```
+    /// use squall_router::SquallRouter;
+    ///
+    /// let mut router = SquallRouter::new();
+    /// router.add_validator("int".to_string(), r"[0-9]+".to_string());
+    /// router.add_route("GET".to_string(), "/api/user/{user_id:int}".to_string(), 0);
+    /// ```
+    pub fn add_route(&mut self, method: String, path: String, handler: i32) -> () {
         if let Ok(parsed) = self.path_parser.parse(path.as_str()) {
             let params_names = parsed
                 .params_names
@@ -128,7 +171,24 @@ impl SquallRouter {
         }
     }
 
-    pub fn add_http_location(&mut self, method: String, path: String, handler: i32) -> () {
+    /// Adds new location for prefixed requests handling
+    ///
+    /// # Arguments
+    ///
+    /// * `method` - Method name. At the moment any String.
+    ///              U can use it also for WS endpoints registration, for instance `"WS".to_string()`
+    /// * `path` - String path string.
+    /// * `handler` - Handler function identifier.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use squall_router::SquallRouter;
+    ///
+    /// let mut router = SquallRouter::new();
+    /// router.add_location("GET".to_string(), "/assets".to_string(), 0);
+    /// ```
+    pub fn add_location(&mut self, method: String, path: String, handler: i32) -> () {
         if let Ok(parsed) = self.path_parser.parse(path.as_str()) {
             let handler = Handler {
                 handler,
@@ -153,8 +213,33 @@ impl SquallRouter {
         }
     }
 
+    /// Get handler identifier, param names and values for given method/path.
+    ///
+    /// Resolving order:
+    /// - Static routes
+    /// - Dynamic routes
+    /// - Locations
+    ///
+    /// # Arguments
+    ///
+    /// * `method` - HTTP Method name.
+    /// * `path` - Request path.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use squall_router::SquallRouter;
+    ///
+    /// let mut router = SquallRouter::new();
+    /// router.add_location("GET".to_string(), "/user/{user_id}".to_string(), 0);
+    ///
+    /// let (handler_id, names, values) = router.resolve("GET", "/user/123");
+    /// assert_eq!(handler_id, 0);
+    /// assert_eq!(names, vec!["user_id"]);
+    /// assert_eq!(values, vec!["123"]);
+    /// ```
     #[inline]
-    pub fn get_http_handler<'a>(
+    pub fn resolve<'a>(
         &'a self,
         method: &str,
         path: &'a str,

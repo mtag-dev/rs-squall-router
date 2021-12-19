@@ -156,13 +156,13 @@ static PATHS: [&str; 3] = [
 fn main() {
     let mut router = squall_router::SquallRouter::new();
     for route in register!(brackets) {
-        router.add_http_route(String::from("GET"), route.to_string(), 0);
+        router.add_route(String::from("GET"), route.to_string(), 0);
     }
 
     if firestorm::enabled() {
         firestorm::bench("target", || {
             for &route in &PATHS {
-                router.get_http_handler("GET", route).unwrap();
+                router.resolve("GET", route).unwrap();
             }
         })
         .unwrap();
