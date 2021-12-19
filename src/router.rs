@@ -64,7 +64,7 @@ pub struct SquallRouter {
     dynamic_db_size: usize,
     static_db: FxHashMap<String, Vec<Handler>>,
     locations_db: Vec<(String, Vec<Handler>)>,
-    path_parser: PathParser,
+    pub path_parser: PathParser,
 }
 
 impl SquallRouter {
@@ -80,14 +80,16 @@ impl SquallRouter {
 
     pub fn add_http_route(&mut self, method: String, path: String, handler: i32) -> () {
         if let Ok(parsed) = self.path_parser.parse(path.as_str()) {
-            let handler = Handler {
-                handler,
-                method,
-                params_names: parsed
+            let params_names = parsed
                     .params_names
                     .iter()
                     .map(|v| v.as_ref().to_owned())
-                    .collect(),
+                    .collect();
+
+            let handler = Handler {
+                handler,
+                method,
+                params_names,
                 params_values: parsed.params_values,
                 params_len: parsed.params_len,
             };
@@ -117,10 +119,6 @@ impl SquallRouter {
                     .entry(subkey.to_string())
                     .or_insert_with(Database::default);
             }
-
-            // Python::with_gil(|py| {
-            //     py.run(format!("print('{:?}')", handler).as_str(), None, None);
-            // });
 
             node.handlers.push(handler);
         }

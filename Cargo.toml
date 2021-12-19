@@ -19,7 +19,6 @@ crate-type = ["rlib"]
 regex = "1"
 rustc-hash = "1"
 firestorm = "0.4"
-embed-doc-image = "0.1"
 
 [dev-dependencies]
 criterion = { version = "0.3", features = ["html_reports"] }
