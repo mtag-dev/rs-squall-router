@@ -78,13 +78,17 @@ impl SquallRouter {
         }
     }
 
+    pub fn add_validator(&mut self, validator: String, regex: String) -> Result<(), String> {
+        self.path_parser.add_validator(validator, regex)
+    }
+
     pub fn add_http_route(&mut self, method: String, path: String, handler: i32) -> () {
         if let Ok(parsed) = self.path_parser.parse(path.as_str()) {
             let params_names = parsed
-                    .params_names
-                    .iter()
-                    .map(|v| v.as_ref().to_owned())
-                    .collect();
+                .params_names
+                .iter()
+                .map(|v| v.as_ref().to_owned())
+                .collect();
 
             let handler = Handler {
                 handler,
