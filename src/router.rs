@@ -231,9 +231,9 @@ impl SquallRouter {
     /// use squall_router::SquallRouter;
     ///
     /// let mut router = SquallRouter::new();
-    /// router.add_location("GET".to_string(), "/user/{user_id}".to_string(), 0);
+    /// router.add_route("GET".to_string(), "/user/{user_id}".to_string(), 0);
     ///
-    /// let (handler_id, names, values) = router.resolve("GET", "/user/123");
+    /// let (handler_id, names, values) = router.resolve("GET", "/user/123").unwrap();
     /// assert_eq!(handler_id, 0);
     /// assert_eq!(names, vec!["user_id"]);
     /// assert_eq!(values, vec!["123"]);

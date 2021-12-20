@@ -147,14 +147,6 @@ impl<'a> PathParser {
     /// * `alias` - String validator identifier
     /// * `regex` - String Regex pattern for compiling validator
     ///
-    /// # Examples
-    ///
-    /// ```
-    /// use squall_core::path::PathParser;
-    ///
-    /// let mut parser = PathParser::new();
-    /// parser.add_validator("int".to_string(), r"[0-9]+".to_string());
-    /// ```
     pub fn add_validator(&mut self, alias: String, regex: String) -> Result<(), String> {
         // Adds new dynamic octet type validator
         match Regex::new(regex.as_str()) {
@@ -175,19 +167,21 @@ impl<'a> PathParser {
     /// # Examples
     ///
     /// ```
-    /// use squall_core::path::{PathParser, Path, Param};
+    /// use regex::Regex;
+    /// use squall_router::path;
     ///
-    /// let mut parser = PathParser::new();
+    /// let mut parser = path::PathParser::new();
     /// parser.add_validator("int".to_string(), r"[0-9]+".to_string());
     /// let path = parser.parse("/route/aaa/{num}/bbb/{num2:str}/ccc/{num3:int}").unwrap();
     ///
     /// assert_eq!(path.octets, vec!["route", "aaa", "*", "bbb", "*", "ccc", "*"]);
     /// assert_eq!(path.params_names, vec!["num", "num2", "num3"]);
-    /// assert_eq!(path.params_values[0], Param { index: 2, validator: None });
-    /// assert_eq!(path.params_values[1], Param { index: 4, validator: None });
-    /// assert_eq!(path.params_values[1], Param { index: 4, validator: Some(Regex::new("[0-9]+").unwrap()) });
-    /// assert_eq!(path.params_names, vec!["num", "num2", "num3"]);
-    /// assert_eq!(path.params_names, vec!["num", "num2", "num3"]);
+    /// assert_eq!(path.params_values[0].index, 2);
+    /// assert!(path.params_values[0].validator.is_none());
+    /// assert_eq!(path.params_values[1].index, 4);
+    /// assert!(path.params_values[1].validator.is_none());
+    /// assert_eq!(path.params_values[2].index, 6);
+    /// assert_eq!(path.params_values[2].validator.as_ref().unwrap().as_str(), "[0-9]+");
     /// ```
 
     pub fn parse(&'a self, path: &'a str) -> Result<Path<'a>, String> {
@@ -214,4 +208,10 @@ impl<'a> PathParser {
         }
         Err("Path processing error".to_string())
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
 }
