@@ -3,11 +3,15 @@ use squall_router::SquallRouter;
 fn main() {
     let mut router = SquallRouter::new();
 
-    router.add_validator("int".to_string(), r"[0-9]+".to_string()).unwrap();
-    router.add_validator(
-        "uuid".to_string(),
-        r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}".to_string(),
-    ).unwrap();
+    router
+        .add_validator("int".to_string(), r"[0-9]+".to_string())
+        .unwrap();
+    router
+        .add_validator(
+            "uuid".to_string(),
+            r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}".to_string(),
+        )
+        .unwrap();
 
     router.add_route(
         "GET".to_string(),

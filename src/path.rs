@@ -123,7 +123,7 @@ impl<'a> PathParser {
                             if let Some(v) = self.validators.get(validator) {
                                 Some(v.to_owned())
                             } else {
-                                None
+                                return Err("Unknown validator: ".to_owned() + validator);
                             }
                         }
                     }
@@ -214,4 +214,47 @@ impl<'a> PathParser {
 mod tests {
     use super::*;
 
+    #[test]
+    fn test_dynamic_path_parse_without_validators() {
+        let mut parser = PathParser::new();
+        let path = parser.parse("/route/aaa/{num}/bbb/{num2}").unwrap();
+
+        assert_eq!(path.octets, vec!["route", "aaa", "*", "bbb", "*"]);
+        assert_eq!(path.params_names, vec!["num", "num2"]);
+        assert_eq!(path.params_values[0].index, 2);
+        assert!(path.params_values[0].validator.is_none());
+        assert_eq!(path.params_values[1].index, 4);
+        assert!(path.params_values[1].validator.is_none());
+    }
+
+    #[test]
+    fn test_dynamic_path_parse_with_validators() {
+        let mut parser = PathParser::new();
+        parser.add_validator("int".to_string(), r"[0-9]+".to_string());
+        let path = parser.parse("/route/aaa/{num}/bbb/{num2:int}").unwrap();
+
+        assert_eq!(path.octets, vec!["route", "aaa", "*", "bbb", "*"]);
+        assert_eq!(path.params_names, vec!["num", "num2"]);
+        assert_eq!(path.params_values[0].index, 2);
+        assert!(path.params_values[0].validator.is_none());
+        assert_eq!(path.params_values[1].index, 4);
+        assert_eq!(
+            path.params_values[1].validator.as_ref().unwrap().as_str(),
+            "[0-9]+"
+        );
+    }
+
+    #[test]
+    fn test_dynamic_path_parse_absent_validator() {
+        let mut parser = PathParser::new();
+        let path = parser.parse("/route/aaa/{num:int}");
+        assert!(path.is_err())
+    }
+
+    #[test]
+    fn test_add_validator_error() {
+        let mut parser = PathParser::new();
+        let result = parser.add_validator("int".to_string(), r"([0-9]+".to_string());
+        assert!(result.is_err())
+    }
 }
