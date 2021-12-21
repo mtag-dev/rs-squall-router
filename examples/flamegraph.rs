@@ -145,12 +145,12 @@ macro_rules! register {
     }};
 }
 
-static PATHS: [&str; 3] = [
+static PATHS: [&str; 1] = [
     // "/authorizations",
     // "/user/repos",
-    "/repos/rust-lang/rust/stargazers",
+    // "/repos/rust-lang/rust/stargazers",
     "/orgs/rust-lang/public_members/nikomatsakis",
-    "/repos/rust-lang/rust/releases/1.51.0",
+    // "/repos/rust-lang/rust/releases/1.51.0",
 ];
 
 fn main() {

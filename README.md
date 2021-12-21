@@ -20,7 +20,7 @@ It is suitable for:
 
 
 ## Performance 
-Benchmark code based on actix-router, so it also here for reference.
+Benchmark code based on [matchit] and [actix-router] code, so they are also here for reference.
 
 <div>
 <img src="https://raw.githubusercontent.com/mtag-dev/rs-squall-router/main/assets/violin.svg" />
@@ -87,5 +87,7 @@ There are a few ways under discussion how to make such limitations not applicabl
 
 Instead, you should use location api.
 
+[matchit]: https://crates.io/crates/matchit
+[actix-router]: https://crates.io/crates/actix-router
 [Squall]: https://github.com/mtag-dev/squall
 [rustc_hash::FxHashMap]: https://docs.rs/rustc-hash/latest/rustc_hash/struct.FxHasher.html

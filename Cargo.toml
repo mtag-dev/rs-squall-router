@@ -22,7 +22,9 @@ firestorm = "0.4"
 
 [dev-dependencies]
 criterion = { version = "0.3", features = ["html_reports"] }
-actix-router = "0.4.0"
+actix-router = "0.4"
+matchit = "0.4"
+
 
 [features]
 profile = ["firestorm/enable_system_time"]

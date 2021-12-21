@@ -5,9 +5,9 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use squall_router;
 
 macro_rules! register {
-    // (colon) => {{
-    //     register!(finish => ":p1", ":p2", ":p3", ":p4")
-    // }};
+    (colon) => {{
+        register!(finish => ":p1", ":p2", ":p3", ":p4")
+    }};
     (brackets) => {{
         register!(finish => "{p1}", "{p2}", "{p3}", "{p4}")
     }};
@@ -175,6 +175,18 @@ fn compare_routers(c: &mut Criterion) {
         b.iter(|| {
             for route in call() {
                 black_box(router.resolve("GET", route).unwrap());
+            }
+        });
+    });
+
+    let mut matchit = matchit::Node::new();
+    for route in register!(colon) {
+        matchit.insert(route, true).unwrap();
+    }
+    group.bench_function("matchit", |b| {
+        b.iter(|| {
+            for route in call() {
+                black_box(matchit.at(route).unwrap());
             }
         });
     });

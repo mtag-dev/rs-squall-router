@@ -297,8 +297,10 @@ impl SquallRouter {
                     continue;
                 }
                 // Names processing should be removed from here
-                let mut names = Vec::with_capacity(handler.params_values.len());
+
+                let mut names = Vec::with_capacity(handler.params_len);
                 let mut values = Vec::with_capacity(handler.params_len);
+
                 for i in 0..handler.params_len {
                     let param = &handler.params_values[i];
                     let value = processor.octets[param.index];
@@ -453,5 +455,4 @@ mod tests {
 
         assert!(route.is_err());
     }
-
 }
