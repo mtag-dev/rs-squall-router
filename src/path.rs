@@ -29,7 +29,7 @@ impl<'a> PathParser {
     }
 
     fn is_valid(&self, path: &str) -> bool {
-        Regex::new(r"^[/a-zA-Z0-9_:{}%\-~!&'*+,;=@]+$")
+        Regex::new(r"^[/a-zA-Z0-9_:{}%\-~!&'*+,;=@.]+$")
             .unwrap()
             .is_match(path)
     }
@@ -220,6 +220,20 @@ mod tests {
         let path = parser.parse("/route/aaa/{num}/bbb/{num2}").unwrap();
 
         assert_eq!(path.octets, vec!["route", "aaa", "*", "bbb", "*"]);
+        assert_eq!(path.params_names, vec!["num", "num2"]);
+        assert_eq!(path.params_values[0].index, 2);
+        assert!(path.params_values[0].validator.is_none());
+        assert_eq!(path.params_values[1].index, 4);
+        assert!(path.params_values[1].validator.is_none());
+
+        let path = parser
+            .parse("/route/aaa/{num}/bbb/{num2}/data.json")
+            .unwrap();
+
+        assert_eq!(
+            path.octets,
+            vec!["route", "aaa", "*", "bbb", "*", "data.json"]
+        );
         assert_eq!(path.params_names, vec!["num", "num2"]);
         assert_eq!(path.params_values[0].index, 2);
         assert!(path.params_values[0].validator.is_none());

@@ -11,7 +11,7 @@ struct Handler {
     params_len: usize,
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 struct Database {
     children: FxHashMap<String, Database>,
     handlers: Vec<Handler>,
@@ -36,7 +36,6 @@ impl<'a> PathProcessor<'a> {
         }
 
         PathProcessor { octets }
-        // PathProcessor { path, octets }
     }
 
     #[inline]
@@ -125,49 +124,53 @@ impl SquallRouter {
     /// router.add_validator("int".to_string(), r"[0-9]+".to_string());
     /// router.add_route("GET".to_string(), "/api/user/{user_id:int}".to_string(), 0);
     /// ```
-    pub fn add_route(&mut self, method: String, path: String, handler: i32) -> () {
-        if let Ok(parsed) = self.path_parser.parse(path.as_str()) {
-            let params_names = parsed
-                .params_names
-                .iter()
-                .map(|v| v.as_ref().to_owned())
-                .collect();
+    pub fn add_route(&mut self, method: String, path: String, handler: i32) -> Result<(), String> {
+        match self.path_parser.parse(path.as_str()) {
+            Ok(parsed) => {
+                let params_names = parsed
+                    .params_names
+                    .iter()
+                    .map(|v| v.as_ref().to_owned())
+                    .collect();
 
-            let handler = Handler {
-                handler,
-                method,
-                params_names,
-                params_values: parsed.params_values,
-                params_len: parsed.params_len,
-            };
+                let handler = Handler {
+                    handler,
+                    method,
+                    params_names,
+                    params_values: parsed.params_values,
+                    params_len: parsed.params_len,
+                };
 
-            // If path completely static, just add to static DB
-            if parsed.octets.iter().all(|i| i != "*") {
-                return self
-                    .static_db
-                    .entry(path)
-                    .or_insert_with(Vec::default)
-                    .push(handler);
+                // If path completely static, just add to static DB
+                if parsed.octets.iter().all(|i| i != "*") {
+                    self.static_db
+                        .entry(path)
+                        .or_insert_with(Vec::default)
+                        .push(handler);
+                    return Ok(());
+                }
+
+                // resize dynamic DB if needed
+                let depth = parsed.octets.len();
+
+                if depth + 1 > self.dynamic_db.len() {
+                    self.dynamic_db.resize_with(depth + 1, Database::default);
+                    self.dynamic_db_size = self.dynamic_db.len();
+                }
+
+                // iterate through the path octets and build database tree
+                let mut node = &mut self.dynamic_db[depth];
+                for subkey in parsed.octets {
+                    node = node
+                        .children
+                        .entry(subkey.to_string())
+                        .or_insert_with(Database::default);
+                }
+
+                node.handlers.push(handler);
+                return Ok(());
             }
-
-            // resize dynamic DB if needed
-            let depth = parsed.octets.len();
-
-            if depth + 1 > self.dynamic_db.len() {
-                self.dynamic_db.resize_with(depth + 1, Database::default);
-                self.dynamic_db_size = self.dynamic_db.len();
-            }
-
-            // iterate through the path octets and build database tree
-            let mut node = &mut self.dynamic_db[depth];
-            for subkey in parsed.octets {
-                node = node
-                    .children
-                    .entry(subkey.to_string())
-                    .or_insert_with(Database::default);
-            }
-
-            node.handlers.push(handler);
+            Err(e) => Err(e),
         }
     }
 
@@ -339,8 +342,116 @@ impl SquallRouter {
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//
-// }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_resolve_no_validators() {
+        let mut router = SquallRouter::new();
+        router.add_route("GET".to_string(), "/name".to_string(), 0);
+        router.add_route("GET".to_string(), "/name/{val}".to_string(), 1);
+        router.add_route("GET".to_string(), "/name/{val}/index.html".to_string(), 2);
+        router.add_route("GET".to_string(), "/{test}/index.html".to_string(), 3);
+
+        let result = router.resolve("GET", "/unknown");
+        assert!(result.is_none());
+
+        let result = router.resolve("GET", "/name");
+        let (handler, param_names, param_values) = result.unwrap();
+        assert_eq!(handler, 0);
+        assert!(param_names.is_empty());
+        assert!(param_values.is_empty());
+
+        // Ensure filtered by method
+        assert!(router.resolve("POST", "/name").is_none());
+
+        let result = router.resolve("GET", "/name/value");
+        let (handler, param_names, param_values) = result.unwrap();
+        assert_eq!(handler, 1);
+        assert_eq!(param_names, vec!["val"]);
+        assert_eq!(param_values, vec!["value"]);
+
+        let result = router.resolve("GET", "/name/value2/index.html");
+        let (handler, param_names, param_values) = result.unwrap();
+        assert_eq!(handler, 2);
+        assert_eq!(param_names, vec!["val"]);
+        assert_eq!(param_values, vec!["value2"]);
+
+        let result = router.resolve("GET", "/test2/index.html");
+        let (handler, param_names, param_values) = result.unwrap();
+        assert_eq!(handler, 3);
+        assert_eq!(param_names, vec!["test"]);
+        assert_eq!(param_values, vec!["test2"]);
+    }
+
+    #[test]
+    fn test_resolve_with_validators() {
+        let mut router = SquallRouter::new();
+        router
+            .add_validator("int".to_string(), r"^[0-9]+$".to_string())
+            .unwrap();
+        router
+            .add_validator("no_int".to_string(), r"^[^0-9]+$".to_string())
+            .unwrap();
+        router
+            .add_validator("user_id".to_string(), r"^ID-[0-9]+$".to_string())
+            .unwrap();
+
+        router.add_route("GET".to_string(), "/user/{user:int}".to_string(), 0);
+        router.add_route("GET".to_string(), "/user/{user:user_id}".to_string(), 1);
+        router.add_route(
+            "GET".to_string(),
+            "/user/{user:int}/index.html".to_string(),
+            2,
+        );
+        router.add_route(
+            "GET".to_string(),
+            "/user/{user:no_int}/index.html".to_string(),
+            3,
+        );
+
+        let result = router.resolve("GET", "/user/123");
+        let (handler, param_names, param_values) = result.unwrap();
+        assert_eq!(handler, 0);
+        assert_eq!(param_names, vec!["user"]);
+        assert_eq!(param_values, vec!["123"]);
+
+        let result = router.resolve("GET", "/user/ID-123");
+        let (handler, param_names, param_values) = result.unwrap();
+        assert_eq!(handler, 1);
+        assert_eq!(param_names, vec!["user"]);
+        assert_eq!(param_values, vec!["ID-123"]);
+
+        let result = router.resolve("GET", "/user/123/index.html");
+        let (handler, param_names, param_values) = result.unwrap();
+        assert_eq!(handler, 2);
+        assert_eq!(param_names, vec!["user"]);
+        assert_eq!(param_values, vec!["123"]);
+
+        let result = router.resolve("GET", "/user/john/index.html");
+        let (handler, param_names, param_values) = result.unwrap();
+        assert_eq!(handler, 3);
+        assert_eq!(param_names, vec!["user"]);
+        assert_eq!(param_values, vec!["john"]);
+    }
+
+    #[test]
+    fn test_wrong_validator() {
+        let mut router = SquallRouter::new();
+
+        assert!(router
+            .add_validator("int".to_string(), r"^[0-9+$".to_string())
+            .is_err());
+    }
+
+    #[test]
+    fn test_absent_validator() {
+        let mut router = SquallRouter::new();
+
+        let route = router.add_route("GET".to_string(), "/{val:int}".to_string(), 0);
+
+        assert!(route.is_err());
+    }
+
+}
