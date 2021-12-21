@@ -740,7 +740,7 @@ dependencies = [
 
 [[package]]
 name = "squall-router"
-version = "0.1.0-beta.2"
+version = "0.1.0-beta.3"
 dependencies = [
  "actix-router",
  "criterion",
