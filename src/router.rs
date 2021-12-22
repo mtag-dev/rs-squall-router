@@ -225,18 +225,17 @@ impl SquallRouter {
     /// let mut router = SquallRouter::new();
     /// router.add_route("GET".to_string(), "/user/{user_id}".to_string(), 0);
     ///
-    /// let (handler_id, names, values) = router.resolve("GET", "/user/123").unwrap();
+    /// let (handler_id, params) = router.resolve("GET", "/user/123").unwrap();
     /// assert_eq!(handler_id, 0);
-    /// assert_eq!(names, vec!["user_id"]);
-    /// assert_eq!(values, vec!["123"]);
+    /// assert_eq!(params, vec![("user_id", "123")]);
     /// ```
     #[inline]
     pub fn resolve<'a>(
         &'a self,
         method: &str,
         path: &'a str,
-    ) -> Option<(i32, Vec<&str>, Vec<&'a str>)> {
-        profile_method!(get_http_handler);
+    ) -> Option<(i32, Vec<(&str, &'a str)>)> {
+        profile_method!(resolve);
 
         if let Some(v) = self.get_static_path_handler(method, path) {
             return Some(v);
@@ -258,12 +257,12 @@ impl SquallRouter {
         &'a self,
         method: &str,
         path: &'a str,
-    ) -> Option<(i32, Vec<&str>, Vec<&'a str>)> {
+    ) -> Option<(i32, Vec<(&str, &'a str)>)> {
         profile_method!(get_static_path_handler);
 
         if let Some(v) = self.static_db.get(path) {
             for handler in v.iter().filter(|v| v.method == method) {
-                return Some((handler.handler, vec![], vec![]));
+                return Some((handler.handler, vec![]));
             }
         }
         None
@@ -274,7 +273,7 @@ impl SquallRouter {
         &'a self,
         method: &str,
         path: &'a str,
-    ) -> Option<(i32, Vec<&str>, Vec<&'a str>)> {
+    ) -> Option<(i32, Vec<(&str, &'a str)>)> {
         profile_method!(get_dynamic_path_handler);
 
         let mut octets_len = bytecount::count(path.as_bytes(), b'/');
@@ -288,8 +287,7 @@ impl SquallRouter {
                     continue;
                 }
                 // Names processing should be removed from here
-                let mut names = Vec::with_capacity(handler.params_len);
-                let mut values = Vec::with_capacity(handler.params_len);
+                let mut parameters = Vec::with_capacity(handler.params_len);
 
                 for i in 0..handler.params_len {
                     let param = &handler.params_values[i];
@@ -308,10 +306,9 @@ impl SquallRouter {
                             continue 'outer;
                         }
                     }
-                    names.push(handler.params_names[i].as_str());
-                    values.push(value);
+                    parameters.push((handler.params_names[i].as_str(), value));
                 }
-                return Some((handler.handler, names, values));
+                return Some((handler.handler, parameters));
             }
         }
 
@@ -323,7 +320,7 @@ impl SquallRouter {
         &'a self,
         method: &str,
         path: &'a str,
-    ) -> Option<(i32, Vec<&str>, Vec<&'a str>)> {
+    ) -> Option<(i32, Vec<(&str, &'a str)>)> {
         profile_method!(get_location_handler);
 
         for i in &self.locations_db {
@@ -336,7 +333,7 @@ impl SquallRouter {
                     continue;
                 }
 
-                return Some((handler.handler, vec![], vec![]));
+                return Some((handler.handler, vec![]));
             }
         }
         None
@@ -359,31 +356,27 @@ mod tests {
         assert!(result.is_none());
 
         let result = router.resolve("GET", "/name");
-        let (handler, param_names, param_values) = result.unwrap();
+        let (handler, params) = result.unwrap();
         assert_eq!(handler, 0);
-        assert!(param_names.is_empty());
-        assert!(param_values.is_empty());
+        assert!(params.is_empty());
 
         // Ensure filtered by method
         assert!(router.resolve("POST", "/name").is_none());
 
         let result = router.resolve("GET", "/name/value");
-        let (handler, param_names, param_values) = result.unwrap();
+        let (handler, params) = result.unwrap();
         assert_eq!(handler, 1);
-        assert_eq!(param_names, vec!["val"]);
-        assert_eq!(param_values, vec!["value"]);
+        assert_eq!(params, vec![("val", "value")]);
 
         let result = router.resolve("GET", "/name/value2/index.html");
-        let (handler, param_names, param_values) = result.unwrap();
+        let (handler, params) = result.unwrap();
         assert_eq!(handler, 2);
-        assert_eq!(param_names, vec!["val"]);
-        assert_eq!(param_values, vec!["value2"]);
+        assert_eq!(params, vec![("val", "value2")]);
 
         let result = router.resolve("GET", "/test2/index.html");
-        let (handler, param_names, param_values) = result.unwrap();
+        let (handler, params) = result.unwrap();
         assert_eq!(handler, 3);
-        assert_eq!(param_names, vec!["test"]);
-        assert_eq!(param_values, vec!["test2"]);
+        assert_eq!(params, vec![("test", "test2")]);
     }
 
     #[test]
@@ -413,28 +406,24 @@ mod tests {
         );
 
         let result = router.resolve("GET", "/user/123");
-        let (handler, param_names, param_values) = result.unwrap();
+        let (handler, params) = result.unwrap();
         assert_eq!(handler, 0);
-        assert_eq!(param_names, vec!["user"]);
-        assert_eq!(param_values, vec!["123"]);
+        assert_eq!(params, vec![("user", "123")]);
 
         let result = router.resolve("GET", "/user/ID-123");
-        let (handler, param_names, param_values) = result.unwrap();
+        let (handler, params) = result.unwrap();
         assert_eq!(handler, 1);
-        assert_eq!(param_names, vec!["user"]);
-        assert_eq!(param_values, vec!["ID-123"]);
+        assert_eq!(params, vec![("user", "ID-123")]);
 
         let result = router.resolve("GET", "/user/123/index.html");
-        let (handler, param_names, param_values) = result.unwrap();
+        let (handler, params) = result.unwrap();
         assert_eq!(handler, 2);
-        assert_eq!(param_names, vec!["user"]);
-        assert_eq!(param_values, vec!["123"]);
+        assert_eq!(params, vec![("user", "123")]);
 
         let result = router.resolve("GET", "/user/john/index.html");
-        let (handler, param_names, param_values) = result.unwrap();
+        let (handler, params) = result.unwrap();
         assert_eq!(handler, 3);
-        assert_eq!(param_names, vec!["user"]);
-        assert_eq!(param_values, vec!["john"]);
+        assert_eq!(params, vec![("user", "john")]);
     }
 
     #[test]

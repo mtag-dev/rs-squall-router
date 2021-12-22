@@ -25,25 +25,28 @@ fn main() {
     );
     router.add_location("GET".to_string(), "/files/css".to_string(), 2);
 
-    let (handler_0, _names_0, _values_0) = router
+    let (handler_0, _parameters_0) = router
         .resolve("GET", "/route/without/dynamic/octets")
         .unwrap();
     assert_eq!(handler_0, 0);
 
-    let (handler_1, names_1, values_1) = router
+    let (handler_1, parameters_1) = router
         .resolve(
             "GET",
             "/route/aaa/aaa_value/bbb/1234/ccc/4bea5a51-1b80-4433-be06-d52726015591",
         )
         .unwrap();
     assert_eq!(handler_1, 1);
-    assert_eq!(names_1, vec!["string_param", "num_param", "uuid_param"]);
     assert_eq!(
-        values_1,
-        vec!["aaa_value", "1234", "4bea5a51-1b80-4433-be06-d52726015591"]
+        parameters_1,
+        vec![
+            ("string_param", "aaa_value"),
+            ("num_param", "1234"),
+            ("uuid_param", "4bea5a51-1b80-4433-be06-d52726015591")
+        ]
     );
 
-    let (handler_2, _names_2, _values_2) = router
+    let (handler_2, _parameters_2) = router
         .resolve("GET", "/files/css/vendor/style.css")
         .unwrap();
     assert_eq!(handler_2, 2);
