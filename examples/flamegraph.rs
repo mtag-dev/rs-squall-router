@@ -149,8 +149,8 @@ static PATHS: [&str; 1] = [
     // "/authorizations",
     // "/user/repos",
     // "/repos/rust-lang/rust/stargazers",
-    "/orgs/rust-lang/public_members/nikomatsakis",
-    // "/repos/rust-lang/rust/releases/1.51.0",
+    // "/orgs/rust-lang/public_members/nikomatsakis",
+    "/repos/rust-lang/rust/releases/1.51.0",
 ];
 
 fn main() {

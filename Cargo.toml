@@ -19,6 +19,7 @@ crate-type = ["rlib"]
 regex = "1"
 rustc-hash = "1"
 firestorm = "0.4"
+bytecount = "0.6.2"
 
 [dev-dependencies]
 criterion = { version = "0.3", features = ["html_reports"] }

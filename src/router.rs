@@ -1,6 +1,8 @@
 use crate::path::{Param, PathParser};
-use firestorm::profile_method;
+use firestorm::{profile_fn, profile_method};
 use rustc_hash::FxHashMap;
+use std::borrow::Borrow;
+use std::str;
 
 #[derive(Debug)]
 struct Handler {
@@ -17,45 +19,32 @@ struct Database {
     handlers: Vec<Handler>,
 }
 
-struct PathProcessor<'a> {
-    // path: &'a str,
-    octets: Vec<&'a str>,
-}
+#[inline]
+fn get_path_handlers<'a>(
+    database_root: &'a Vec<Database>,
+    path: &'a str,
+    octets_len: usize,
+) -> Option<&'a Vec<Handler>> {
+    profile_fn!(get_path_handlers);
 
-impl<'a> PathProcessor<'a> {
-    #[inline]
-    fn new(path: &str, max_length: usize) -> PathProcessor {
-        profile_method!(new);
-
-        let mut octets = Vec::with_capacity(max_length);
-        for octet in path.split('/') {
+    if let Some(mut database) = database_root.get(octets_len) {
+        for octet in path.as_bytes().split(|b| b == &b'/') {
             if octet.is_empty() {
                 continue;
             }
-            octets.push(octet);
-        }
 
-        PathProcessor { octets }
-    }
-
-    #[inline]
-    fn get_path_handlers(&self, database_root: &'a Vec<Database>) -> Option<&'a Vec<Handler>> {
-        profile_method!(get_path_handlers);
-
-        if let Some(mut database) = database_root.get(self.octets.len()) {
-            for &octet in &self.octets {
-                match database.children.get(octet) {
-                    Some(v) => database = v,
-                    None => match database.children.get("*") {
-                        Some(dynamic) => database = dynamic,
-                        None => return None,
-                    },
-                }
+            let str_octet = unsafe { str::from_utf8_unchecked(octet) };
+            match database.children.get(str_octet) {
+                Some(v) => database = v,
+                None => match database.children.get("*") {
+                    Some(dynamic) => database = dynamic,
+                    None => return None,
+                },
             }
-            return Some(&database.handlers);
         }
-        None
+        return Some(&database.handlers);
     }
+    None
 }
 
 pub struct SquallRouter {
@@ -288,22 +277,32 @@ impl SquallRouter {
     ) -> Option<(i32, Vec<&str>, Vec<&'a str>)> {
         profile_method!(get_dynamic_path_handler);
 
-        let processor = PathProcessor::new(path, self.dynamic_db_size);
-        if let Some(handlers) = processor.get_path_handlers(&self.dynamic_db) {
+        let mut octets_len = bytecount::count(path.as_bytes(), b'/');
+        if path.ends_with("/") {
+            octets_len -= 1;
+        }
+
+        if let Some(handlers) = get_path_handlers(&self.dynamic_db, path, octets_len) {
             'outer: for handler in handlers {
-                // 'outer: for i in 0..handlers.len() {
-                //     let handler = &handlers[i];
                 if &handler.method != method {
                     continue;
                 }
                 // Names processing should be removed from here
-
                 let mut names = Vec::with_capacity(handler.params_len);
                 let mut values = Vec::with_capacity(handler.params_len);
 
                 for i in 0..handler.params_len {
                     let param = &handler.params_values[i];
-                    let value = processor.octets[param.index];
+                    let value = unsafe {
+                        str::from_utf8_unchecked(
+                            path.as_bytes()
+                                .split(|b| b == &b'/')
+                                .skip(param.index + 1)
+                                .next()
+                                .unwrap(),
+                        )
+                    };
+
                     if let Some(v) = &param.validator {
                         if !v.is_match(value) {
                             continue 'outer;
