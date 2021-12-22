@@ -1,7 +1,6 @@
 use crate::path::{Param, PathParser};
 use firestorm::{profile_fn, profile_method};
 use rustc_hash::FxHashMap;
-use std::borrow::Borrow;
 use std::str;
 
 #[derive(Debug)]
@@ -347,10 +346,18 @@ mod tests {
     #[test]
     fn test_resolve_no_validators() {
         let mut router = SquallRouter::new();
-        router.add_route("GET".to_string(), "/name".to_string(), 0);
-        router.add_route("GET".to_string(), "/name/{val}".to_string(), 1);
-        router.add_route("GET".to_string(), "/name/{val}/index.html".to_string(), 2);
-        router.add_route("GET".to_string(), "/{test}/index.html".to_string(), 3);
+        router
+            .add_route("GET".to_string(), "/name".to_string(), 0)
+            .unwrap();
+        router
+            .add_route("GET".to_string(), "/name/{val}".to_string(), 1)
+            .unwrap();
+        router
+            .add_route("GET".to_string(), "/name/{val}/index.html".to_string(), 2)
+            .unwrap();
+        router
+            .add_route("GET".to_string(), "/{test}/index.html".to_string(), 3)
+            .unwrap();
 
         let result = router.resolve("GET", "/unknown");
         assert!(result.is_none());
@@ -364,6 +371,12 @@ mod tests {
         assert!(router.resolve("POST", "/name").is_none());
 
         let result = router.resolve("GET", "/name/value");
+        let (handler, params) = result.unwrap();
+        assert_eq!(handler, 1);
+        assert_eq!(params, vec![("val", "value")]);
+
+        // trim last slash
+        let result = router.resolve("GET", "/name/value/");
         let (handler, params) = result.unwrap();
         assert_eq!(handler, 1);
         assert_eq!(params, vec![("val", "value")]);
@@ -392,18 +405,26 @@ mod tests {
             .add_validator("user_id".to_string(), r"^ID-[0-9]+$".to_string())
             .unwrap();
 
-        router.add_route("GET".to_string(), "/user/{user:int}".to_string(), 0);
-        router.add_route("GET".to_string(), "/user/{user:user_id}".to_string(), 1);
-        router.add_route(
-            "GET".to_string(),
-            "/user/{user:int}/index.html".to_string(),
-            2,
-        );
-        router.add_route(
-            "GET".to_string(),
-            "/user/{user:no_int}/index.html".to_string(),
-            3,
-        );
+        router
+            .add_route("GET".to_string(), "/user/{user:int}".to_string(), 0)
+            .unwrap();
+        router
+            .add_route("GET".to_string(), "/user/{user:user_id}".to_string(), 1)
+            .unwrap();
+        router
+            .add_route(
+                "GET".to_string(),
+                "/user/{user:int}/index.html".to_string(),
+                2,
+            )
+            .unwrap();
+        router
+            .add_route(
+                "GET".to_string(),
+                "/user/{user:no_int}/index.html".to_string(),
+                3,
+            )
+            .unwrap();
 
         let result = router.resolve("GET", "/user/123");
         let (handler, params) = result.unwrap();

@@ -13,16 +13,20 @@ fn main() {
         )
         .unwrap();
 
-    router.add_route(
-        "GET".to_string(),
-        "/route/without/dynamic/octets".to_string(),
-        0,
-    );
-    router.add_route(
-        "GET".to_string(),
-        "/route/aaa/{string_param}/bbb/{num_param:int}/ccc/{uuid_param:uuid}".to_string(),
-        1,
-    );
+    router
+        .add_route(
+            "GET".to_string(),
+            "/route/without/dynamic/octets".to_string(),
+            0,
+        )
+        .unwrap();
+    router
+        .add_route(
+            "GET".to_string(),
+            "/route/aaa/{string_param}/bbb/{num_param:int}/ccc/{uuid_param:uuid}".to_string(),
+            1,
+        )
+        .unwrap();
     router.add_location("GET".to_string(), "/files/css".to_string(), 2);
 
     let (handler_0, _parameters_0) = router

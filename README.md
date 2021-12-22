@@ -1,8 +1,5 @@
 # High performance HTTP router
 
-<font color="red">ATTN</font>: Library is under active development. Should not be used in production environments.
-
-
 Initially created as routing subsystem for Python's [Squall] API Framework.
 
 Designed to mitigate the overhead of large-scale routing tables.

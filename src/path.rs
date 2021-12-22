@@ -216,7 +216,7 @@ mod tests {
 
     #[test]
     fn test_dynamic_path_parse_without_validators() {
-        let mut parser = PathParser::new();
+        let parser = PathParser::new();
         let path = parser.parse("/route/aaa/{num}/bbb/{num2}").unwrap();
 
         assert_eq!(path.octets, vec!["route", "aaa", "*", "bbb", "*"]);
@@ -244,7 +244,9 @@ mod tests {
     #[test]
     fn test_dynamic_path_parse_with_validators() {
         let mut parser = PathParser::new();
-        parser.add_validator("int".to_string(), r"[0-9]+".to_string());
+        parser
+            .add_validator("int".to_string(), r"[0-9]+".to_string())
+            .unwrap();
         let path = parser.parse("/route/aaa/{num}/bbb/{num2:int}").unwrap();
 
         assert_eq!(path.octets, vec!["route", "aaa", "*", "bbb", "*"]);
@@ -260,7 +262,7 @@ mod tests {
 
     #[test]
     fn test_dynamic_path_parse_absent_validator() {
-        let mut parser = PathParser::new();
+        let parser = PathParser::new();
         let path = parser.parse("/route/aaa/{num:int}");
         assert!(path.is_err())
     }
