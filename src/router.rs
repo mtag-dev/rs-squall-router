@@ -47,7 +47,7 @@ fn get_path_handlers<'a>(
                     Some(dynamic) => database = dynamic,
                     None => return None,
                 },
-            };
+            }
         }
         return Some(&database.handlers);
     }

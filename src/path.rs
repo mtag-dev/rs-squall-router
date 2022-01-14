@@ -31,15 +31,6 @@ impl<'a> PathParser {
     }
 
     /// Enable ignore trailing slashes mode
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use squall_router::SquallRouter;
-    ///
-    /// let mut router = SquallRouter::new();
-    /// router.set_ignore_trailing_slashes();
-    /// ```
     pub fn set_ignore_trailing_slashes(&mut self) {
         self.ignore_trailing_slashes = true
     }
@@ -96,10 +87,6 @@ impl<'a> PathParser {
         let mut errors = Vec::new();
 
         for i in normalized.split("/") {
-            // if i.len() == 0 {
-            //     continue;
-            // }
-
             let octet = match i {
                 val if val == "*" => val,
                 val if val.contains("*") => {
