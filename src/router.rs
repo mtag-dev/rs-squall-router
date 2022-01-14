@@ -23,14 +23,22 @@ fn get_path_handlers<'a>(
     database_root: &'a Vec<Database>,
     path: &'a str,
     octets_len: usize,
+    allow_empty_octets: bool,
 ) -> Option<&'a Vec<Handler>> {
     profile_fn!(get_path_handlers);
+    let mut is_first_octet = true;
 
     if let Some(mut database) = database_root.get(octets_len) {
         for octet in path.as_bytes().split(|b| b == &b'/') {
             if octet.is_empty() {
-                continue;
+                if is_first_octet {
+                    continue;
+                } else if allow_empty_octets {
+                    continue;
+                }
             }
+
+            is_first_octet = false;
 
             let str_octet = unsafe { str::from_utf8_unchecked(octet) };
             match database.children.get(str_octet) {
@@ -39,7 +47,7 @@ fn get_path_handlers<'a>(
                     Some(dynamic) => database = dynamic,
                     None => return None,
                 },
-            }
+            };
         }
         return Some(&database.handlers);
     }
@@ -52,6 +60,7 @@ pub struct SquallRouter {
     static_db: FxHashMap<String, Vec<Handler>>,
     locations_db: Vec<(String, Vec<Handler>)>,
     path_parser: PathParser,
+    ingore_trailing_slashes: bool,
 }
 
 impl SquallRouter {
@@ -62,7 +71,23 @@ impl SquallRouter {
             static_db: FxHashMap::default(),
             locations_db: Vec::new(),
             path_parser: PathParser::new(),
+            ingore_trailing_slashes: false,
         }
+    }
+
+    /// Enable ignore trailing slashes mode
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use squall_router::SquallRouter;
+    ///
+    /// let mut router = SquallRouter::new();
+    /// router.set_ignore_trailing_slashes();
+    /// ```
+    pub fn set_ignore_trailing_slashes(&mut self) {
+        self.ingore_trailing_slashes = true;
+        self.path_parser.set_ignore_trailing_slashes();
     }
 
     /// Adds new validation option for dynamic parameters.
@@ -276,11 +301,16 @@ impl SquallRouter {
         profile_method!(get_dynamic_path_handler);
 
         let mut octets_len = bytecount::count(path.as_bytes(), b'/');
-        if path.ends_with("/") {
+        if self.ingore_trailing_slashes && path.ends_with("/") {
             octets_len -= 1;
         }
 
-        if let Some(handlers) = get_path_handlers(&self.dynamic_db, path, octets_len) {
+        if let Some(handlers) = get_path_handlers(
+            &self.dynamic_db,
+            path,
+            octets_len,
+            self.ingore_trailing_slashes,
+        ) {
             'outer: for handler in handlers {
                 if &handler.method != method {
                     continue;
@@ -375,12 +405,6 @@ mod tests {
         assert_eq!(handler, 1);
         assert_eq!(params, vec![("val", "value")]);
 
-        // trim last slash
-        let result = router.resolve("GET", "/name/value/");
-        let (handler, params) = result.unwrap();
-        assert_eq!(handler, 1);
-        assert_eq!(params, vec![("val", "value")]);
-
         let result = router.resolve("GET", "/name/value2/index.html");
         let (handler, params) = result.unwrap();
         assert_eq!(handler, 2);
@@ -463,5 +487,66 @@ mod tests {
         let route = router.add_route("GET".to_string(), "/{val:int}".to_string(), 0);
 
         assert!(route.is_err());
+    }
+
+    #[test]
+    fn test_ignore_trailing_slashes_enabled() {
+        let mut router = SquallRouter::new();
+        router.set_ignore_trailing_slashes();
+        router
+            .add_route("GET".to_string(), "/user/{user}/".to_string(), 2)
+            .unwrap();
+
+        router
+            .add_route("GET".to_string(), "/issue/{issue}".to_string(), 3)
+            .unwrap();
+
+        let result = router.resolve("GET", "/user/john/");
+        let (handler, params) = result.unwrap();
+        assert_eq!(handler, 2);
+        assert_eq!(params, vec![("user", "john")]);
+
+        let result = router.resolve("GET", "/user/john");
+        let (handler, params) = result.unwrap();
+        assert_eq!(handler, 2);
+        assert_eq!(params, vec![("user", "john")]);
+
+        let result = router.resolve("GET", "/issue/test/");
+        let (handler, params) = result.unwrap();
+        assert_eq!(handler, 3);
+        assert_eq!(params, vec![("issue", "test")]);
+
+        let result = router.resolve("GET", "/issue/test");
+        let (handler, params) = result.unwrap();
+        assert_eq!(handler, 3);
+        assert_eq!(params, vec![("issue", "test")]);
+    }
+
+    #[test]
+    fn test_ignore_trailing_slashes_disabled() {
+        let mut router = SquallRouter::new();
+        router
+            .add_route("GET".to_string(), "/user/{user}/".to_string(), 2)
+            .unwrap();
+
+        router
+            .add_route("GET".to_string(), "/issue/{issue}".to_string(), 3)
+            .unwrap();
+
+        let result = router.resolve("GET", "/user/john/");
+        let (handler, params) = result.unwrap();
+        assert_eq!(handler, 2);
+        assert_eq!(params, vec![("user", "john")]);
+
+        let result = router.resolve("GET", "/user/john");
+        assert!(result.is_none());
+
+        let result = router.resolve("GET", "/issue/test/");
+        assert!(result.is_none());
+
+        let result = router.resolve("GET", "/issue/test");
+        let (handler, params) = result.unwrap();
+        assert_eq!(handler, 3);
+        assert_eq!(params, vec![("issue", "test")]);
     }
 }

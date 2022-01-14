@@ -19,13 +19,29 @@ pub struct Path<'a> {
 
 pub struct PathParser {
     validators: HashMap<String, Regex>,
+    ignore_trailing_slashes: bool,
 }
 
 impl<'a> PathParser {
     pub fn new() -> PathParser {
         PathParser {
             validators: HashMap::new(),
+            ignore_trailing_slashes: false,
         }
+    }
+
+    /// Enable ignore trailing slashes mode
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use squall_router::SquallRouter;
+    ///
+    /// let mut router = SquallRouter::new();
+    /// router.set_ignore_trailing_slashes();
+    /// ```
+    pub fn set_ignore_trailing_slashes(&mut self) {
+        self.ignore_trailing_slashes = true
     }
 
     fn is_valid(&self, path: &str) -> bool {
@@ -40,10 +56,15 @@ impl<'a> PathParser {
     ///
     /// * `path` - original path value
     fn normalized(&self, path: &'a str) -> &'a str {
-        path.trim_start_matches("^")
+        let normalized = path
+            .trim_start_matches("^")
             .trim_start_matches("/")
-            .trim_end_matches("$")
-            .trim_end_matches("/")
+            .trim_end_matches("$");
+
+        if !self.ignore_trailing_slashes {
+            return normalized;
+        }
+        normalized.trim_end_matches("/")
     }
 
     /// Returns a path split by octets. Any complete dynamic octet replaced by asterisk
@@ -75,9 +96,9 @@ impl<'a> PathParser {
         let mut errors = Vec::new();
 
         for i in normalized.split("/") {
-            if i.len() == 0 {
-                continue;
-            }
+            // if i.len() == 0 {
+            //     continue;
+            // }
 
             let octet = match i {
                 val if val == "*" => val,
@@ -258,6 +279,16 @@ mod tests {
             path.params_values[1].validator.as_ref().unwrap().as_str(),
             "[0-9]+"
         );
+    }
+
+    #[test]
+    fn test_set_ignore_trailing_slashes() {
+        let mut parser = PathParser::new();
+        let path = parser.parse("/route/aaa/").unwrap();
+        assert_eq!(path.octets, vec!["route", "aaa", ""]);
+        parser.set_ignore_trailing_slashes();
+        let path = parser.parse("/route/aaa/").unwrap();
+        assert_eq!(path.octets, vec!["route", "aaa"]);
     }
 
     #[test]
