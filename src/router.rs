@@ -138,7 +138,12 @@ impl SquallRouter {
     /// router.add_route("GET".to_string(), "/api/user/{user_id:int}".to_string(), 0);
     /// ```
     pub fn add_route(&mut self, method: String, path: String, handler: i32) -> Result<(), String> {
-        match self.path_parser.parse(path.as_str()) {
+        let _path = match self.ingore_trailing_slashes {
+            true => path.trim_end_matches("/").to_string(),
+            false => path,
+        };
+
+        match self.path_parser.parse(_path.as_str()) {
             Ok(parsed) => {
                 let params_names = parsed
                     .params_names
@@ -157,7 +162,7 @@ impl SquallRouter {
                 // If path completely static, just add to static DB
                 if parsed.octets.iter().all(|i| i != "*") {
                     self.static_db
-                        .entry(path)
+                        .entry(_path)
                         .or_insert_with(Vec::default)
                         .push(handler);
                     return Ok(());
@@ -261,15 +266,20 @@ impl SquallRouter {
     ) -> Option<(i32, Vec<(&str, &'a str)>)> {
         profile_method!(resolve);
 
-        if let Some(v) = self.get_static_path_handler(method, path) {
+        let _path = match self.ingore_trailing_slashes {
+            true => path.trim_end_matches("/"),
+            false => path,
+        };
+
+        if let Some(v) = self.get_static_path_handler(method, _path) {
             return Some(v);
         }
 
-        if let Some(v) = self.get_dynamic_path_handler(method, path) {
+        if let Some(v) = self.get_dynamic_path_handler(method, _path) {
             return Some(v);
         }
 
-        if let Some(v) = self.get_location_handler(method, path) {
+        if let Some(v) = self.get_location_handler(method, _path) {
             return Some(v);
         }
 
@@ -501,6 +511,14 @@ mod tests {
             .add_route("GET".to_string(), "/issue/{issue}".to_string(), 3)
             .unwrap();
 
+        router
+            .add_route("GET".to_string(), "/trailing/".to_string(), 4)
+            .unwrap();
+
+        router
+            .add_route("GET".to_string(), "/notrailing".to_string(), 5)
+            .unwrap();
+
         let result = router.resolve("GET", "/user/john/");
         let (handler, params) = result.unwrap();
         assert_eq!(handler, 2);
@@ -520,6 +538,26 @@ mod tests {
         let (handler, params) = result.unwrap();
         assert_eq!(handler, 3);
         assert_eq!(params, vec![("issue", "test")]);
+
+        let result = router.resolve("GET", "/trailing/");
+        let (handler, params) = result.unwrap();
+        assert_eq!(handler, 4);
+        assert_eq!(params, vec![]);
+
+        let result = router.resolve("GET", "/trailing");
+        let (handler, params) = result.unwrap();
+        assert_eq!(handler, 4);
+        assert_eq!(params, vec![]);
+
+        let result = router.resolve("GET", "/notrailing/");
+        let (handler, params) = result.unwrap();
+        assert_eq!(handler, 5);
+        assert_eq!(params, vec![]);
+
+        let result = router.resolve("GET", "/notrailing");
+        let (handler, params) = result.unwrap();
+        assert_eq!(handler, 5);
+        assert_eq!(params, vec![]);
     }
 
     #[test]
@@ -533,6 +571,14 @@ mod tests {
             .add_route("GET".to_string(), "/issue/{issue}".to_string(), 3)
             .unwrap();
 
+        router
+            .add_route("GET".to_string(), "/static/".to_string(), 4)
+            .unwrap();
+
+        router
+            .add_route("GET".to_string(), "/static".to_string(), 5)
+            .unwrap();
+
         let result = router.resolve("GET", "/user/john/");
         let (handler, params) = result.unwrap();
         assert_eq!(handler, 2);
@@ -548,5 +594,15 @@ mod tests {
         let (handler, params) = result.unwrap();
         assert_eq!(handler, 3);
         assert_eq!(params, vec![("issue", "test")]);
+
+        let result = router.resolve("GET", "/static/");
+        let (handler, params) = result.unwrap();
+        assert_eq!(handler, 4);
+        assert_eq!(params, vec![]);
+
+        let result = router.resolve("GET", "/static");
+        let (handler, params) = result.unwrap();
+        assert_eq!(handler, 5);
+        assert_eq!(params, vec![]);
     }
 }
