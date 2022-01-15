@@ -31,6 +31,7 @@ use squall_router::SquallRouter;
 
 fn main() {
     let mut router = SquallRouter::new();
+    router.set_ignore_trailing_slashes();
 
     router
         .add_validator("int".to_string(), r"[0-9]+".to_string())
