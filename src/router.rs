@@ -519,6 +519,10 @@ mod tests {
             .add_route("GET".to_string(), "/notrailing".to_string(), 5)
             .unwrap();
 
+        router
+            .add_route("GET".to_string(), "/".to_string(), 6)
+            .unwrap();
+
         let result = router.resolve("GET", "/user/john/");
         let (handler, params) = result.unwrap();
         assert_eq!(handler, 2);
@@ -558,6 +562,11 @@ mod tests {
         let (handler, params) = result.unwrap();
         assert_eq!(handler, 5);
         assert_eq!(params, vec![]);
+
+        let result = router.resolve("GET", "/");
+        let (handler, params) = result.unwrap();
+        assert_eq!(handler, 6);
+        assert_eq!(params, vec![]);
     }
 
     #[test]
@@ -577,6 +586,10 @@ mod tests {
 
         router
             .add_route("GET".to_string(), "/static".to_string(), 5)
+            .unwrap();
+
+        router
+            .add_route("GET".to_string(), "/".to_string(), 6)
             .unwrap();
 
         let result = router.resolve("GET", "/user/john/");
@@ -603,6 +616,11 @@ mod tests {
         let result = router.resolve("GET", "/static");
         let (handler, params) = result.unwrap();
         assert_eq!(handler, 5);
+        assert_eq!(params, vec![]);
+
+        let result = router.resolve("GET", "/");
+        let (handler, params) = result.unwrap();
+        assert_eq!(handler, 6);
         assert_eq!(params, vec![]);
     }
 }

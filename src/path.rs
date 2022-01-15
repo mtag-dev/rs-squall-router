@@ -36,6 +36,10 @@ impl<'a> PathParser {
     }
 
     fn is_valid(&self, path: &str) -> bool {
+        if path.is_empty() {
+            return true;
+        }
+
         Regex::new(r"^[/a-zA-Z0-9_:{}%\-~!&'*+,;=@.]+$")
             .unwrap()
             .is_match(path)
@@ -273,9 +277,17 @@ mod tests {
         let mut parser = PathParser::new();
         let path = parser.parse("/route/aaa/").unwrap();
         assert_eq!(path.octets, vec!["route", "aaa", ""]);
+
+        let path = parser.parse("/").unwrap();
+        assert_eq!(path.octets, vec![""]);
+
         parser.set_ignore_trailing_slashes();
+
         let path = parser.parse("/route/aaa/").unwrap();
         assert_eq!(path.octets, vec!["route", "aaa"]);
+
+        let path = parser.parse("/").unwrap();
+        assert_eq!(path.octets, vec![""]);
     }
 
     #[test]
